@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "XXX.com.boilerplate.app"
+        ],
+        "components": [
+          {
+            "/": "*",
+            "comment": "Matches any URL."
+          }
+        ]
+      }
+    ]
+  }
+}

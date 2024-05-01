@@ -1,0 +1,11 @@
+{
+  "back": "Retour",
+  "cancel": "Annuler",
+  "empty": {
+    "button": "Essayons à nouveau",
+    "content": "Aucune donnée trouvée pour le moment. Essayez de cliquer sur le bouton pour rafraîchir ou recharger l'application.",
+    "heading": "Si vide... si triste"
+  },
+  "logOut": "Déconnexion",
+  "ok": "OK !"
+}

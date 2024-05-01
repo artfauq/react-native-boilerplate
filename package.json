@@ -1,0 +1,8 @@
+{
+  "name": "react-native-boilerplate",
+  "version": "0.0.1",
+  "description": "React Native template",
+  "author": "Arthur Fauquenot",
+  "repository": "https://github.com/artfauq/react-native-boilerplate.git",
+  "license": "MIT"
+}

@@ -1,0 +1,75 @@
+package = load_json(json_path: "../package.json")
+
+CODEPUSH_APP_NAME = "MyCompany/BoilerplateApp-Android"
+
+default_platform :android
+
+platform :android do
+  desc "Android: clean project"
+  lane :clean do
+    gradle(task: "clean")
+  end
+
+  desc "Android: increment version"
+  lane :increment_version do
+    android_set_version_name(
+      gradle_file: "./app/build.gradle",
+      version_name: package["version"]
+    )
+    increment_version_code(gradle_file_path: "./app/build.gradle")
+  end
+
+  desc "Android: build application"
+  lane :build do
+    clean()
+    increment_version()
+    gradle(
+      task: "assemble",
+      build_type: "Release"
+    )
+  end
+  
+  desc "Android: update snapshots"
+  lane :snapshots do
+    build_android_app(
+      task: "assemble",
+      build_type: "Debug",
+    )
+    build_android_app(
+      task: "assemble",
+      build_type: "AndroidTest",
+    )
+    capture_android_screenshots()  # alias for `screengrab`
+  end
+
+  desc "Android: submit a new Beta Build to Google Play Beta"
+  lane :beta do
+    build()
+    supply( # alias for "upload_to_play_store"
+      aab: "./app/build/outputs/bundle/release/app-release.aab",
+      check_superseded_tracks: true,
+      track: "beta"
+    )
+    commit_android_version_bump(
+      gradle_file_folder: "./app",
+      message: "build: bump build number"
+    )
+  end
+
+  desc "Android: deploy to CodePush"
+  lane :codepush do
+    build()
+    codepush_login()
+    codepush_release_react(
+      app_name: CODEPUSH_APP_NAME,
+      execution_dir_path: "../",
+      deployment_name: "Production",
+      output_dir: "./build",
+      sourcemap_output: "./build/main.jsbundle.map",
+      target_binary_version: package["version"],
+    )
+    commit_android_version_bump(
+      message: "build: bump Android build number"
+    )
+  end
+end

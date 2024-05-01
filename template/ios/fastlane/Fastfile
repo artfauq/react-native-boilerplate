@@ -1,0 +1,147 @@
+package = load_json(json_path: "../package.json")
+
+CODEPUSH_APP_NAME = "MyCompany/Boilerplate-iOS"
+
+default_platform :ios
+
+platform :ios do
+  desc "iOS: clean build artifacts and derived data"
+  lane :clean do
+    clean_build_artifacts
+    clean_cocoapods_cache
+    clear_derived_data
+    xcclean(
+      scheme: "Boilerplate",
+      workspace: "./Boilerplate.xcworkspace"
+    )
+  end
+
+  desc "iOS: update app icons"
+  lane :update_icon do
+    appicon(
+      appicon_devices: [:iphone],
+      appicon_image_file: "../assets/logo@4x.png",
+      appicon_path: "Boilerplate/Images.xcassets"
+    )
+  end
+
+  desc "iOS: update snapshots"
+  lane :snapshots do
+    capture_screenshots
+    frame_screenshots( # alias for `frameit`
+      white: true
+    )
+  end
+
+  desc "iOS: increment version"
+  lane :increment_version do
+    increment_version_number(
+      version_number: package["version"],
+      xcodeproj: "./Boilerplate.xcodeproj"
+    )
+    increment_build_number(
+      xcodeproj: "./Boilerplate.xcodeproj"
+    )
+  end
+
+  desc "iOS: fetch certificates"
+  lane :certificates do
+    match(
+      type: "appstore",
+      readonly: true
+    )
+    match(
+      type: "development",
+      readonly: true
+    )
+  end
+
+  desc "iOS: build application"
+  lane :build do
+    clean
+    certificates
+    increment_version
+    cocoapods(
+      podfile: "./Podfile",
+    )
+    build_app(
+      build_path: "./build",
+      clean: true,
+      configuration: "Release",
+      # export_method: "app-store",
+      # export_options: {
+      #   provisioningProfiles: {
+      #     CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier) => CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier) + " AppStore"
+      #   }
+      # },
+      output_directory: "./build",
+      scheme: "Boilerplate",
+      workspace: "./Boilerplate.xcworkspace"
+    )
+  end
+
+  desc "iOS: ship to Testflight"
+  lane :beta do
+    #   get_certificates(output_path: "./ios/builds")
+    #   get_provisioning_profile(
+    #     output_path: "./ios/builds",
+    #     filename: "provisioning.mobileprovision"
+    #   )
+    #   update_project_provisioning(
+    #     xcodeproj: "./ios/Boilerplate.xcodeproj",
+    #     target_filter: "Boilerplate",
+    #     profile: "./ios/builds/provisioning.mobileprovision",
+    #     build_configuration: "Release"
+    #   )
+    #   update_project_team(
+    #     teamid: CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
+    #   )
+    build
+    precheck # alias for `check_app_store_metadata`
+    snapshots
+    upload_to_testflight # alias for `pilot` and `testflight`
+    commit_version_bump(
+      message: "build: bump build number",
+      xcodeproj: "./Boilerplate.xcodeproj"
+    )
+  end
+
+  desc "iOS: deploy to App Store"
+  lane :deploy do
+    build
+    precheck # alias for `check_app_store_metadata`
+    snapshots
+    upload_to_app_store( # alias for `deliver`
+      app_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+      automatic_release: false,
+      force: true,
+      skip_binary_upload: false,
+      skip_screenshots: true,
+      skip_metadata: true,
+      skip_app_version_update: true,
+      submit_for_review: true
+    )
+    commit_version_bump(
+      message: "build: bump build number",
+      xcodeproj: "./Boilerplate.xcodeproj"
+    )
+  end
+
+  desc "iOS: deploy to CodePush"
+  lane :codepush do
+    build
+    codepush_login
+    codepush_release_react(
+      app_name: CODEPUSH_APP_NAME,
+      execution_dir_path: "../",
+      deployment_name: "Production",
+      output_dir: "./build",
+      sourcemap_output: "./build/main.jsbundle.map",
+      target_binary_version: package["version"],
+    )
+    commit_version_bump(
+      message: "build: bump iOS build number",
+      xcodeproj: "./Boilerplate.xcodeproj"
+    )
+  end
+end

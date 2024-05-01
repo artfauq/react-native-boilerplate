@@ -1,0 +1,13 @@
+clean(false)
+clear_previous_screenshots(true)
+concurrent_simulators(false)
+devices([
+  "iPhone 14",
+])
+erase_simulator(false)
+ios_version("17.4")
+languages(["fr-FR"])
+number_of_retries(0)
+reinstall_app(false)
+scheme("BoilerplateUITests")
+stop_after_first_error(true)
